@@ -19,6 +19,10 @@ function EMV_IO.dump_file(filepath, data)
     return success
 end
 
+function EMV_IO.save_settings(settings)
+    EMV_IO.dump_file("CharacterPoser_Settings.json", settings)
+end
+
 -- New function to find all subdirectories in the given path.
 function EMV_IO.get_character_folders()
     local folders = fs.glob(BASE_PATH .. "/*") or {}
