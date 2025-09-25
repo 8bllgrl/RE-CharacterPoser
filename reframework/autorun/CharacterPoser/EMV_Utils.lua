@@ -61,19 +61,29 @@ function EMV_Utils.mat4_to_trs(mat4)
     return pos, rot, scale
 end
 
+-- Corrected function to build and return a new matrix
 function EMV_Utils.trs_to_mat4(translation, rotation, scale)
     if type(translation) == "table" then
         translation, rotation, scale = table.unpack(translation)
     end
+    
+    local s = scale or Vector3f.new(1, 1, 1)
+    local t = translation or Vector3f.new(0, 0, 0)
+    local r = rotation or Quaternion.new(0, 0, 0, 1)
+    
     local scale_mat = Matrix4x4f.new(
-        Vector4f.new(scale.x or 1, 0, 0, 0),
-        Vector4f.new(0, scale.y or 1, 0, 0),
-        Vector4f.new(0, 0, scale.z or 1, 0),
+        Vector4f.new(s.x, 0, 0, 0),
+        Vector4f.new(0, s.y, 0, 0),
+        Vector4f.new(0, 0, s.z, 0),
         Vector4f.new(0, 0, 0, 1)
     )
-    local new_mat = rotation:to_mat4() or Matrix4x4f.identity()
-    new_mat = new_mat * scale_mat
-    new_mat[3] = ((translation and translation.to_vec4 and translation:to_vec4()) or translation) or new_mat[3]
+    local rot_mat = r:to_mat4() or Matrix4x4f.identity()
+    
+    local new_mat = rot_mat * scale_mat
+    
+    -- Correctly set the translation by creating a new Vector4f
+    new_mat[3] = Vector4f.new(t.x, t.y, t.z, new_mat[3].w)
+    
     return new_mat
 end
 
