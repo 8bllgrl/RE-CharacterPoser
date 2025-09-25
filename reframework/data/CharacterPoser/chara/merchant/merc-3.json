@@ -1,0 +1,20 @@
+{
+    "cha700_01": {
+        "GameObject": {
+            "_Name": "cha700_01"
+        },
+        "Transform": {
+            "__typedef": "via.Transform"
+        },
+        "Mesh": {
+            "Mesh": "res:_Chainsaw/Character/ch/cha7/cha700/01/cha700_01.mesh via.render.MeshResourceHolder",
+            "_Material": "res:_Chainsaw/Character/ch/cha7/cha700/01/cha700_01.mdf2 via.render.MeshMaterialResourceHolder",
+            "__typedef": "via.render.Mesh"
+        },
+        "__components_order": [
+            "via.Transform",
+            "via.render.Mesh"
+        ],
+        "__children": []
+    }
+}

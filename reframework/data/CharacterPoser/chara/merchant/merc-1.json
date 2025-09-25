@@ -1,0 +1,98 @@
+{
+    "cha700_00": {
+        "GameObject": {
+            "_Name": "cha700_00"
+        },
+        "Transform": {
+            "__typedef": "via.Transform"
+        },
+        "Mesh": {
+            "Mesh": "res:_Chainsaw/Character/ch/cha7/cha700/00/cha700_00.mesh via.render.MeshResourceHolder",
+            "_Material": "res:_Chainsaw/Character/ch/cha7/cha700/00/cha700_00.mdf2 via.render.MeshMaterialResourceHolder",
+            "__typedef": "via.render.Mesh"
+        },
+        "Motion": {
+            "_JointMap": "res:_Chainsaw/Character/ch/cha7/cha700_00.jmap via.motion.JointMapResourceHolder",
+            "_MotionBankAsset": "res:_Chainsaw/Animation/ch/cha7/motbank/cha7.motbank via.motion.MotionBankResourceHolder",
+            "__typedef": "via.motion.Motion"
+        },
+		"Chain": {
+            "CalculateMode": 0,
+            "DynamicModelCollision": null,
+            "DynamicModelCollisionCount": 0,
+            "GravityCoord": 0,
+            "Group": null,
+            "GroupByHierarchyHash": null,
+            "GroupByHierarchyHashDirect": null,
+            "GroupCount": 24,
+            "GroupNameHash": null,
+            "_ActiveCalculateMode": 3,
+            "_BlendRate": 1,
+            "_CalculateStepFrame": 1,
+            "_ChainAsset": "res:_Chainsaw/Character/ch/cha7/cha700_00.chain via.motion.ChainResourceHolder",
+            "_DampingFreezeRate": 0,
+            "_DevLocalPositionLimit": 0,
+            "_EnableWindStabilizing": true,
+            "_Enabled": true,
+            "_EnabledAngleLimit": true,
+            "_EnabledCollision": true,
+            "_EnabledNoise": true,
+            "_EnabledVirtualFloor": true,
+            "_ExternalWindForce": "vec:0.0 0.0 0.0",
+            "_ExternalWindPower": 0,
+            "_ExternalWindRotation": "vec:0.0 0.0 0.0 1.0",
+            "_FreezeRate": 0,
+            "_GlobalColliderAreaLimitScale": 10,
+            "_GravityFreezeRate": 0,
+            "_GroupPresetID": 0,
+            "_MotionFreezeRate": 0,
+            "_PresetID": 0,
+            "_Priority": 0,
+            "_ResourceGroupCount": 24,
+            "_Setuped": true,
+            "_SpringFreezeRate": 0,
+            "_StabilaizeNum": 20,
+            "_StepFrame": 1,
+            "_SubReduceDistance": 0,
+            "_UpdateInterval": 0,
+            "_UpdateTiming": 3,
+            "_Valid": true,
+            "_VirtualGroundTargetHeight": 0,
+            "_WindFreezeRate": 0,
+            "_WindPower": 1,
+            "__address": "obj:571142112",
+            "__gameobj_name": "gm84_623_00_0_武器商人",
+            "__typedef": "via.motion.Chain"
+        },
+        "JointConstraints": {
+            "Layer": [
+                {
+                    "OutputTargetHashTbl": null,
+                    "_BlendRate": 1,
+                    "_JointConstraintsAsset": "res:_Chainsaw/Character/ch/cha7/cha700_00.jcns via.motion.JointConstraintsResourceHolder",
+                    "_OutputTargetCount": 30,
+                    "_OverrideUpdateTiming": 3,
+                    "__address": "obj:571141648",
+                    "__typedef": "via.motion.JointConstraintsLayer"
+                }
+            ],
+            "LayerCount": 1,
+            "_Enabled": true,
+            "_UpdateTiming": 1,
+            "_Valid": true,
+            "__address": "obj:571141872",
+            "__gameobj_name": "gm84_623_00_0_武器商人",
+            "__typedef": "via.motion.JointConstraints"
+        },
+        "__components_order": [
+            "via.Transform",
+            "via.render.Mesh",
+            "via.motion.Motion",
+			"via.motion.JointConstraints",
+            "via.motion.Chain"
+        ],
+        "__children": [
+            "cha700_10"
+        ]
+    }
+}
