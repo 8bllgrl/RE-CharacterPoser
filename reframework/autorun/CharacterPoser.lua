@@ -13,7 +13,6 @@ _G.CharacterPoser_State = _G.CharacterPoser_State or {
         last_selected_object = nil,
     },
     collection = {}, 
-    -- character_folders and selected_character_folder removed
     json_files = {},
     selected_json_name = nil,
     gizmo_matrix = Matrix4x4f.identity(),
@@ -21,6 +20,30 @@ _G.CharacterPoser_State = _G.CharacterPoser_State or {
     gizmo_rotate_enabled = true,
     gizmo_scale_enabled = true,
 }
+
+-- Custom deferred call function to execute commands. This replaces the reliance on init.lua's loop.
+local function execute_deferred_command(cmd)
+    local success, err
+    local obj = cmd.obj -- The object (component or GO) to call the function on
+
+    if cmd.lua_func then
+        -- Execute a wrapped Lua function
+        success, err = pcall(cmd.lua_func)
+    elseif cmd.func then
+        -- Execute a native method call
+        if cmd.args then
+            success, err = pcall(obj.call, obj, cmd.func, cmd.args)
+        else
+            success, err = pcall(obj.call, obj, cmd.func)
+        end
+    end
+    
+    if not success then
+        EMV_Utils.logv("Failed to execute deferred command: " .. tostring(err) .. " on " .. tostring(obj))
+        return false -- Command failed.
+    end
+    return true
+end
 
 local function initialize_script()
     local state = _G.CharacterPoser_State
@@ -38,6 +61,8 @@ end
 
 re.on_script_reset(function()
     _G.CharacterPoser_State.is_initialized = false
+    -- Also reset the custom queue on reset
+    _G.CharacterPoser_DeferredQueue = {} 
     initialize_script()
 end)
 
@@ -72,7 +97,39 @@ re.on_draw_ui(function()
 end)
 
 re.on_frame(function()
+    -- 1. Process local object updates
     for _, obj in ipairs(_G.CharacterPoser_State.collection) do
         obj:update()
+    end
+
+    -- 2. Process the script's custom deferred queue (DECOUPLED EXECUTION)
+    local queue = _G.CharacterPoser_DeferredQueue
+    if queue and next(queue) then
+        local objects_to_remove = {}
+        for gameobj, commands in pairs(queue) do
+            
+            -- Execute commands from the start, removing as we go.
+            for i = #commands, 1, -1 do
+                local cmd = commands[i]
+                -- Execute the command, passing the managed object key from the queue as the target
+                if execute_deferred_command(cmd) then
+                    -- Command succeeded, remove it from the list
+                    table.remove(commands, i)
+                else
+                    -- Command failed (Access Violation/Error), stop processing this object's queue for this frame
+                    break 
+                end
+            end
+
+            -- Check if the command list for this object is now empty
+            if #commands == 0 then
+                table.insert(objects_to_remove, gameobj)
+            end
+        end
+
+        -- Clean up object entries from the main queue
+        for _, gameobj in ipairs(objects_to_remove) do
+            queue[gameobj] = nil
+        end
     end
 end)
