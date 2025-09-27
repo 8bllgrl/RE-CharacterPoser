@@ -13,8 +13,7 @@ _G.CharacterPoser_State = _G.CharacterPoser_State or {
         last_selected_object = nil,
     },
     collection = {}, 
-    character_folders = {}, 
-    selected_character_folder = nil,
+    -- character_folders and selected_character_folder removed
     json_files = {},
     selected_json_name = nil,
     gizmo_matrix = Matrix4x4f.identity(),
@@ -28,13 +27,10 @@ local function initialize_script()
     local loaded_settings = EMV_IO.load_file("CharacterPoser_Settings.json")
     state.settings = EMV_Utils.merge_tables(state.settings, loaded_settings)
     
-    state.character_folders = EMV_IO.get_character_folders()
-    if #state.character_folders > 0 then
-        state.selected_character_folder = state.character_folders[1]
-        state.json_files = EMV_IO.get_json_files(state.selected_character_folder)
-        if state.json_files and #state.json_files.names > 0 then
-            state.selected_json_name = state.json_files.names[1]
-        end
+    -- Fetch all character files directly
+    state.json_files = EMV_IO.get_json_files() 
+    if state.json_files and #state.json_files.names > 0 then
+        state.selected_json_name = state.json_files.names[1]
     end
     
     state.is_initialized = true

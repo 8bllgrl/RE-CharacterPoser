@@ -1,9 +1,6 @@
 -- File: EMV_IO.lua
 local EMV_IO = {}
 
--- Base path for character data (relative to reframework/data)
-local BASE_PATH = "CharacterPoser/chara"
-
 -- Load JSON safely
 function EMV_IO.load_file(filepath)
     local ok, data = pcall(json.load_file, filepath)
@@ -21,46 +18,48 @@ function EMV_IO.save_settings(settings)
     EMV_IO.dump_file("CharacterPoser_Settings.json", settings)
 end
 
--- Get all character subfolders
-function EMV_IO.get_character_folders()
-    local folders = fs.glob(BASE_PATH .. "/*") or {}
-    local folder_names = {}
+-- Hardcoded paths list (simulating discovery without file system traversal)
+local KNOWN_JSON_FILES = {
+    "CharacterPoser\\chara\\merchant.json",
+}
 
-    for _, path in ipairs(folders) do
-        if not path:match("%.json$") then
-            local sub_files = fs.glob(path .. "/*.json") or {}
-            if #sub_files > 0 then
-                local name = path:match("^.*/([^/]+)$") or path:match("^.+\\([^\\]+)$")
-                if name then
-                    table.insert(folder_names, name)
-                end
-            end
+-- New function to get all JSON files.
+function EMV_IO.get_all_character_jsons()
+    local json_files = {
+        names = {},
+        paths = {},
+        indexes = {},
+    }
+
+    for i, full_path in ipairs(KNOWN_JSON_FILES) do
+        -- Extract the path relative to the 'chara/' directory for the UI name
+        local name = full_path:match("chara\\(.+)")
+        
+        if name then
+            table.insert(json_files.names, name)
+            json_files.paths[name] = full_path
+            json_files.indexes[name] = #json_files.names
         end
     end
+    
+    table.sort(json_files.names)
+    
+    -- Rebuild indexes after sort
+    for i, name in ipairs(json_files.names) do
+        json_files.indexes[name] = i
+    end
 
-    log.info("[EMV_IO] Found " .. #folder_names .. " character folders.")
-    return folder_names
+    return json_files
 end
 
--- Get JSON files within a given folder
+-- Deprecated/No-op functions replacing the old folder-based logic
+function EMV_IO.get_character_folders()
+    return {} -- Return empty table
+end
+
 function EMV_IO.get_json_files(folder_name)
-    local path_glob = BASE_PATH .. "/" .. (folder_name or "*") .. "/*.json"
-    local files = fs.glob(path_glob) or {}
-
-    log.info("[EMV_IO] Found " .. #files .. " JSON files in: " .. path_glob)
-
-    local file_data = { names = {}, paths = {}, indexes = {}, glob_path = path_glob }
-
-    for i, file_path in ipairs(files) do
-        local name = file_path:match("[/]([%w%-]+)%.json$") or file_path:match("[\\]([%w%-]+)%.json$")
-        if name then
-            table.insert(file_data.names, name)
-            file_data.paths[name] = file_path
-            file_data.indexes[name] = i
-        end
-    end
-
-    return file_data
+    -- This is the new entry point for getting all files
+    return EMV_IO.get_all_character_jsons()
 end
 
 return EMV_IO
