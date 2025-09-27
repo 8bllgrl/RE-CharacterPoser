@@ -35,18 +35,22 @@ end
 local function get_component_commands(new_component, prop_key, final_value, comp_type_name)
     local commands = {}
     local obj = new_component 
-    local is_mesh_resource_prop = comp_type_name == "Mesh" and (prop_key == "Mesh" or prop_key == "_Material")
+    
+    -- Check if the final value is a managed object representing a ResourceHolder
+    local is_resource = EMV_Utils.is_valid_obj(final_value) and final_value.get_type_definition and final_value:get_type_definition():get_name():find("ResourceHolder")
+    
+    local setter_name = "set_" .. prop_key:gsub("^_", "")
 
-    if is_mesh_resource_prop then
-        -- CRITICAL FIX: The Mesh setters must be double-wrapped in lua_func for stability.
-        if prop_key == "_Material" then
-            table.insert(commands, { lua_func = function() obj:call("set_Material", final_value) end, obj=obj })
-        elseif prop_key == "Mesh" then
-            table.insert(commands, { lua_func = function() obj:call("setMesh", final_value) end, obj=obj })
-        end
+    -- Handle the special 'setMesh' case
+    if prop_key == "Mesh" and comp_type_name == "Mesh" then
+        setter_name = "setMesh"
+    end
+
+    if is_resource then
+        -- CRITICAL FIX: Wrap ALL resource setters in lua_func blocks for maximum stability.
+        table.insert(commands, { lua_func = function() obj:call(setter_name, final_value) end, obj=obj })
     else
         -- Try Setter (preferred in init.lua pattern)
-        local setter_name = "set_" .. prop_key:gsub("^_", "")
         if pcall(obj.call, obj, setter_name, final_value) then
             table.insert(commands, { func = setter_name, args = final_value, obj = obj })
         else
@@ -67,6 +71,14 @@ function EMV_GameObject.class.create_from_json(json_data, parent_xform, spawn_po
     end
 
     EMV_Utils.logv("--- Loading JSON for: " .. tostring(parent_file_path) .. " ---")
+    
+    -- FIX: Use the local utility function to print structured JSON content
+    if EMV_Utils.json_to_string then
+        EMV_Utils.logv(EMV_Utils.json_to_string(json_data))
+    else
+        -- Fallback if json_to_string isn't available for some reason
+        EMV_Utils.logv(tostring(json_data))
+    end
     
     local obj_name = next(json_data)
     local obj_data = json_data[obj_name]
@@ -147,7 +159,7 @@ function EMV_GameObject.class.create_from_json(json_data, parent_xform, spawn_po
             local commands = get_component_commands(comp_props.component, prop_key, final_value, comp_props.type_name)
             
             for _, cmd in ipairs(commands) do
-                -- Separate volatile resource commands to run last
+                -- Separate volatile resource commands to run last (all resource setters use lua_func)
                 if cmd.lua_func then
                     table.insert(resource_commands, cmd)
                 else

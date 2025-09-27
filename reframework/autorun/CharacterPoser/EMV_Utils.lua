@@ -1,4 +1,4 @@
--- File: reframework/autorun/CharacterPoser/EMV_Utils.lua
+-- File: reframework/autorun/CharacterPoser/EMV_Utils.lua (Modified)
 local EMV_Utils = {}
 
 -- Basic logging function to print values, based on logv from init.lua
@@ -45,7 +45,53 @@ function EMV_Utils.vector_to_table(std_vector)
     return new_table
 end
 
--- New functions moved to the top
+-- New function to pretty-print a table/JSON structure.
+function EMV_Utils.json_to_string(t, indent_level)
+    indent_level = indent_level or 0
+    local indent_str = string.rep("    ", indent_level)
+    local next_indent_str = string.rep("    ", indent_level + 1)
+    local output = {}
+    local is_array = true
+    
+    if type(t) ~= "table" then
+        return tostring(t)
+    end
+    
+    -- Determine if it's a map or an array (basic check)
+    for k in pairs(t) do
+        if type(k) ~= 'number' or k < 1 or k % 1 ~= 0 then 
+            is_array = false
+            break
+        end
+    end
+    
+    table.insert(output, is_array and indent_str .. "[" or indent_str .. "{")
+
+    for k, v in pairs(t) do
+        local key_str = is_array and "" or ('"' .. tostring(k) .. '": ')
+        
+        if type(v) == "table" then
+            local nested_output = EMV_Utils.json_to_string(v, indent_level + 1)
+            -- Remove the leading indent from the nested output, then re-add it prefixed by the key
+            nested_output = nested_output:gsub("^%s*", "")
+            table.insert(output, next_indent_str .. key_str .. nested_output)
+        else
+            local value_str = type(v) == "string" and ('"' .. v .. '"') or tostring(v)
+            table.insert(output, next_indent_str .. key_str .. value_str .. ",")
+        end
+    end
+    
+    -- Remove the trailing comma from the last element if present
+    if #output > 1 then
+        output[#output] = output[#output]:gsub(",$", "")
+    end
+    
+    table.insert(output, is_array and indent_str .. "]" or indent_str .. "}")
+    
+    return table.concat(output, "\n")
+end
+
+
 local function magnitude(vector)
     return math.sqrt(vector.x^2 + vector.y^2 + vector.z^2)
 end
