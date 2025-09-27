@@ -99,7 +99,10 @@ end)
 re.on_frame(function()
     -- 1. Process local object updates
     for _, obj in ipairs(_G.CharacterPoser_State.collection) do
-        obj:update()
+        -- FIX: Defensive check for method existence to avoid "method 'update' is not callable" runtime error (Line 102)
+        if obj and obj.update and type(obj.update) == "function" then
+            obj:update() 
+        end
     end
 
     -- 2. Process the script's custom deferred queue (DECOUPLED EXECUTION)

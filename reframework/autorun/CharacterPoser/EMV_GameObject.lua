@@ -36,8 +36,7 @@ local function get_component_commands(new_component, prop_key, final_value, comp
     local commands = {}
     local obj = new_component 
     
-    -- Check if the final value is a managed object representing a ResourceHolder
-    local is_resource = EMV_Utils.is_valid_obj(final_value) and final_value.get_type_definition and final_value:get_type_definition():get_name():find("ResourceHolder")
+    local is_resource = EMV_Utils.is_valid_obj(final_value) and final_value.get_type_definition and final_value:get_type_definition():get_type_definition():get_name():find("ResourceHolder")
     
     local setter_name = "set_" .. prop_key:gsub("^_", "")
 
@@ -46,24 +45,45 @@ local function get_component_commands(new_component, prop_key, final_value, comp
         setter_name = "setMesh"
     end
 
-    if is_resource then
-        -- CRITICAL FIX: Wrap ALL resource setters in lua_func blocks for maximum stability.
+    -- FIX: Universally wrap all setters for highly volatile/resource-heavy components (Mesh, Motion, Chain, JointConstraints)
+    local requires_lua_func = is_resource or 
+                              comp_type_name == "Mesh" or 
+                              comp_type_name == "Motion" or 
+                              comp_type_name == "Chain" or 
+                              comp_type_name == "JointConstraints"
+    
+    if requires_lua_func then
+        -- CRITICAL FIX: Wrap ALL resource and volatile setters in lua_func blocks.
         table.insert(commands, { lua_func = function() obj:call(setter_name, final_value) end, obj=obj })
-    else
-        -- Try Setter (preferred in init.lua pattern)
+        
+    -- --- NON-RESOURCE PROPERTY/FIELD SETTERS on stable components (e.g., GameObject, Transform) ---
+    elseif prop_key:sub(1, 1) == "_" or comp_type_name == "GameObject" then 
+        
+        -- 1. Try property setter (e.g., _Enabled -> set_Enabled)
         if pcall(obj.call, obj, setter_name, final_value) then
             table.insert(commands, { func = setter_name, args = final_value, obj = obj })
+        
+        -- 2. Fallback to Field (via lua_func)
         else
-            -- Fallback to Field (via lua_func)
             table.insert(commands, { lua_func = function() pcall(obj.set_field, obj, prop_key, final_value) end, obj = obj })
         end
     end
+    
     return commands
 end
 
 
 -- 'parent_file_path' is the full path of the JSON file that triggered this creation.
-function EMV_GameObject.class.create_from_json(json_data, parent_xform, spawn_position, parent_file_path)
+function EMV_GameObject.class.create_from_json(json_data, parent_xform, spawn_position, parent_file_path, recursion_depth)
+    
+    -- ADDED: Check for circular data recursion
+    recursion_depth = recursion_depth or 0
+    local MAX_RECURSION_DEPTH = 20
+    if recursion_depth > MAX_RECURSION_DEPTH then
+        EMV_Utils.logv("Error: Potential circular dependency detected in JSON data (recursion depth exceeded " .. MAX_RECURSION_DEPTH .. ") for: " .. tostring(parent_file_path))
+        return nil
+    end
+    -- END ADDED: Check for circular data recursion
     
     if not json_data or next(json_data) == nil then
         EMV_Utils.logv("Error: JSON data is empty or invalid for path: " .. tostring(parent_file_path))
@@ -75,9 +95,6 @@ function EMV_GameObject.class.create_from_json(json_data, parent_xform, spawn_po
     -- FIX: Use the local utility function to print structured JSON content
     if EMV_Utils.json_to_string then
         EMV_Utils.logv(EMV_Utils.json_to_string(json_data))
-    else
-        -- Fallback if json_to_string isn't available for some reason
-        EMV_Utils.logv(tostring(json_data))
     end
     
     local obj_name = next(json_data)
@@ -113,7 +130,7 @@ function EMV_GameObject.class.create_from_json(json_data, parent_xform, spawn_po
             
             if new_component then
                 -- CRITICAL FIX: IMMEDIATELY call the component's constructor
-                if comp_type_name ~= "Transform" then
+                if comp_type_name ~= "Transform" and new_component.call then
                     new_component:call(".ctor")
                 end
                 
@@ -175,6 +192,7 @@ function EMV_GameObject.class.create_from_json(json_data, parent_xform, spawn_po
     end
     
     -- 3. Final single assignment to the CharacterPoser's local queue (decoupling from init.lua's processor)
+    -- NOTE: This structure is key for the double-deferral stabilization.
     _G.CharacterPoser_DeferredQueue = _G.CharacterPoser_DeferredQueue or {}
 
     if #final_commands > 0 then
@@ -193,7 +211,8 @@ function EMV_GameObject.class.create_from_json(json_data, parent_xform, spawn_po
 
             local child_json_data = EMV_IO.load_file(child_file_path)
             if child_json_data and next(child_json_data) then
-                EMV_GameObject.class.create_from_json(child_json_data, new_xform, nil, child_file_path)
+                -- MODIFIED: Pass the incremented recursion depth
+                EMV_GameObject.class.create_from_json(child_json_data, new_xform, nil, child_file_path, recursion_depth + 1)
             else
                  EMV_Utils.logv("Warning: Child file not loaded or is empty at: " .. child_file_path)
             end
